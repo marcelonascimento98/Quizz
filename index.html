@@ -1,26 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz com Temporizador</title>
+  <!-- Carregando a fonte ADLaM Display -->
+  <link href="https://fonts.googleapis.com/css2?family=ADLaM+Display&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos gerais */
+    body {
+      font-family: 'ADLaM Display', sans-serif; /* Fonte ADLaM Display */
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+
+    /* Container principal */
+    #quiz-container {
+      position: relative;
+      width: 80%;
+      height: 80%;
+      background-size: cover;
+      background-position: center;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: white;
+      overflow: hidden;
+    }
+
+    /* Caixa da pergunta com fundo cinza transparente */
+    #question {
+      font-size: 2.5em;
+      text-align: center;
+      margin-bottom: 10px;
+      padding: 10px 20px;
+      background-color: rgba(128, 128, 128, 0.4); /* Cinza transparente */
+      border-radius: 8px;
+      width: 80%;
+      box-sizing: border-box;
+    }
+
+    /* Caixa de resposta com fundo branco transparente */
+    #answer {
+      font-size: 1.8em;
+      text-align: center;
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: rgba(255, 255, 255, 0.4); /* Branco transparente */
+      color: yellow; /* Resposta amarela */
+      border-radius: 8px;
+      display: none;
+      width: 80%;
+      box-sizing: border-box;
+    }
+
+    /* Temporizador */
+    #timer-text {
+      font-size: 2.5em;
+      font-weight: bold;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #ff0000;
+    }
+  </style>
 </head>
 <body>
-    <div class="overlay"></div>  <!-- Camada de máscara -->
-    
-    <!-- Título "Horário de Brasília" -->
-    <h2><strong>Horário de Brasília</strong></h2>
-    
-    <!-- Relógio -->
-    <div class="clock">
-        <span id="hours">00</span>
-        <span id="minutes">00</span>
-        <span id="seconds">00</span>
-    </div>
 
-    <!-- Data -->
-    <div class="date" id="date">Domingo, 24 de novembro de 2024</div>
+<div id="quiz-container">
+  <div id="question"></div>
+  <div id="answer"></div>
+  <div id="timer-text">8s</div>
+</div>
 
-    <script src="script.js"></script>
+<script>
+// Função para formatar as perguntas, capitalizando a primeira letra de palavras com mais de 3 letras
+function capitalizeQuestion(question) {
+  return question.split(' ').map((word, index) => {
+    // Aplica maiúscula na primeira palavra ou palavras com mais de 3 letras
+    if (index === 0 || word.length > 3) {
+      return word.charAt(0).toUpperCase() + word.slice(1); // Primeira letra maiúscula
+    }
+    return word.toLowerCase(); // Deixa as palavras menores em minúsculo
+  }).join(' ');
+}
+
+// Função para embaralhar a ordem das perguntas
+function shuffleQuestions(questions) {
+  for (let i = questions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [questions[i], questions[j]] = [questions[j], questions[i]]; // Troca as perguntas
+  }
+  return questions;
+}
+
+// Base local de perguntas e respostas
+const quizData = [
+  {
+    question: "Qual é o Maior Oceano do Mundo?",
+    answer: "Oceano Pacífico",
+  },
+  {
+    question: "Quem Inventou a Lâmpada Elétrica?",
+    answer: "Thomas Edison",
+  },
+  {
+    question: "Qual é o Menor País do Mundo?",
+    answer: "Vaticano",
+  },
+  {
+    question: "Quem Pintou a Mona Lisa?",
+    answer: "Leonardo da Vinci",
+  },
+  {
+    question: "Qual é o Planeta mais Próximo do Sol?",
+    answer: "Mercúrio",
+  },
+  {
+    question: "Qual é o Idioma mais Falado no Mundo?",
+    answer: "Inglês",
+  },
+  {
+    question: "Qual é a Capital do Brasil?",
+    answer: "Brasília",
+  },
+  {
+    question: "Qual é o Animal mais Rápido do Mundo?",
+    answer: "Falcão-peregrino",
+  },
+  {
+    question: "Quantos Ossos tem o Corpo Humano Adulto?",
+    answer: "206 ossos",
+  },
+  {
+    question: "Qual é a Maior Floresta do Mundo?",
+    answer: "Amazônia",
+  }
+];
+
+// Embaralha as perguntas
+const shuffledQuizData = shuffleQuestions(quizData);
+
+// Elementos HTML
+const questionElement = document.getElementById("question");
+const answerElement = document.getElementById("answer");
+const timerText = document.getElementById("timer-text");
+const quizContainer = document.getElementById("quiz-container");
+
+let currentQuestionIndex = 0;
+let countdown;
+let timeLeft = 8; // Tempo do temporizador (8 segundos para a resposta)
+let questionTime = 12; // Tempo total da pergunta (12 segundos)
+
+// Função para exibir a pergunta atual
+function displayQuestion() {
+  const currentQuiz = shuffledQuizData[currentQuestionIndex];
+
+  // Atualiza fundo com a imagem do repositório GitHub
+  quizContainer.style.backgroundImage = "url('https://github.com/marcelonascimento98/Quizz/raw/Quizz1/photo.jpg')"; // Caminho da imagem no GitHub
+
+  // Exibe pergunta formatada
+  questionElement.textContent = capitalizeQuestion(currentQuiz.question);
+  answerElement.style.display = "none"; // Esconde a resposta
+
+  // Reseta o contador e o temporizador visual
+  timeLeft = 8;
+  timerText.textContent = `${timeLeft}s`;
+
+  // Inicia temporizador de 8 segundos para a resposta
+  countdown = setInterval(() => {
+    timeLeft--;
+    timerText.textContent = `${timeLeft}s`;
+
+    if (timeLeft <= 0) {
+      clearInterval(countdown);
+      answerElement.textContent = `Resposta: ${currentQuiz.answer}`;
+      answerElement.style.display = "block";
+    }
+  }, 1000);
+
+  // Muda a pergunta após 12 segundos
+  setTimeout(() => {
+    currentQuestionIndex = (currentQuestionIndex + 1) % shuffledQuizData.length;
+    displayQuestion();
+  }, 12000);
+}
+
+// Inicia a exibição da primeira pergunta
+displayQuestion();
+</script>
+
 </body>
 </html>
